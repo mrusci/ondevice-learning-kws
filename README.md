@@ -1,7 +1,7 @@
 # Few-Shot Open-Set Learning for On-Device Customization of KWS
 
 
-This repository contains the code to reproduce the experiments of our [paper](). 
+This repository contains the code to reproduce the experiments of our [paper](https://arxiv.org/pdf/2306.02161.pdf). 
 We provide the scripts to:
 * train a fearure extractor using the Multilingual Spoken Words Corpus ([MSWC](https://mlcommons.org/en/multilingual-spoken-words/)) dataset with different training recipes and backbones (refer to the [training details](#feature-extractor-training) for more info)
 * run tests on the Google Speech Commands ([GSC](https://ai.googleblog.com/2017/08/launching-speech-commands-dataset.html)) dataset using few-shot examples to initilize a classifier that is meant to work in open-set
