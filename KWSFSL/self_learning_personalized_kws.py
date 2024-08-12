@@ -613,8 +613,8 @@ if __name__ == '__main__':
                         help="Force presence of silence samples (all zeros) oin the triplet")
 
     # log options
-    parser.add_argument('--log.lod_dir', type=str, default='logs', 
-            help="Filename for the json dir")
+    parser.add_argument('--log.dirname', type=str, default='logs', 
+            help="Result dirname")
     parser.add_argument('--log.results_json', type=str, default='log_continual_db_new_pers_final.json', 
             help="Filename for the json log")
     
@@ -658,9 +658,11 @@ if __name__ == '__main__':
     results_global = {'settings': opt}
 
     # store logs
-    dir_name = os.path.dirname(opt['model_path'])
+    dir_name = opt['log.dirname']
     json_log_file = opt['log.results_json']
     log_json_file = os.path.join(dir_name, json_log_file)
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
     print('Log file: ', log_json_file)
     if os.path.isfile(log_json_file):
         with open(log_json_file, 'r') as jsonFile:
