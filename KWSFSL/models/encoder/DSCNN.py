@@ -1,9 +1,5 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from models.encoder.baseUtil import Flatten, get_padding
-from collections import OrderedDict
-
+from models.encoder.baseUtil import Flatten
 import math
 
 class DSCNN(nn.Module):
@@ -40,14 +36,31 @@ class DSCNN(nn.Module):
             kernel_size = (conv_kt[layer_no],conv_kf[layer_no])
             stride = (conv_st[layer_no],conv_sf[layer_no])
 
+
+            t_dim_b = t_dim
+            f_dim_b = f_dim
+
+            t_dim = math.ceil(t_dim/float(conv_st[layer_no]))
+            f_dim = math.ceil(f_dim/float(conv_sf[layer_no]))
+
+            t_pad  = (t_dim - 1) * conv_st[layer_no] + conv_kt[layer_no] - t_dim_b
+            t_pad_l = math.ceil(t_pad/2)
+            t_pad_r = t_pad - t_pad_l
+            f_pad  = (f_dim - 1) * conv_sf[layer_no] + conv_kf[layer_no] - f_dim_b
+            f_pad_l = math.ceil(f_pad/2)
+            f_pad_r = f_pad - f_pad_l
+
+            padding = (f_pad_l, f_pad_r, t_pad_l, t_pad_r  )
+
             if layer_no==0:
                 # P = ((S-1)*W-S+F)/2, with F = filter size, S = stride, W = input size
-                padding = (   int( (conv_kt[layer_no]-1)  //2 ),  int( (conv_kf[layer_no]-1) //2) )
-                ds_cnn_layers.append( nn.Conv2d(in_channels = 1, out_channels = num_filters, kernel_size = kernel_size, stride = stride, padding = padding_0, bias = True) )
+                ds_cnn_layers.append( nn.ZeroPad2d( padding ) )
+                ds_cnn_layers.append( nn.Conv2d(in_channels = 1, out_channels = num_filters, kernel_size = kernel_size, stride = stride, bias = True) )
                 ds_cnn_layers.append( nn.BatchNorm2d(num_filters) )
                 ds_cnn_layers.append( nn.ReLU() )
             else:
-                ds_cnn_layers.append( nn.Conv2d(in_channels = num_filters, out_channels = num_filters, kernel_size = kernel_size, stride = stride, padding = (1,1), groups = num_filters, bias = True) )
+                ds_cnn_layers.append( nn.ZeroPad2d(padding) )
+                ds_cnn_layers.append( nn.Conv2d(in_channels = num_filters, out_channels = num_filters, kernel_size = kernel_size, stride = stride, groups = num_filters, bias = True) )
                 ds_cnn_layers.append( nn.BatchNorm2d(num_filters) )
                 ds_cnn_layers.append( nn.ReLU() )
                 ds_cnn_layers.append( nn.Conv2d(in_channels = num_filters, out_channels = num_filters, kernel_size = (1, 1), stride = (1, 1), bias = True) )
@@ -55,18 +68,15 @@ class DSCNN(nn.Module):
                     ds_cnn_layers.append( nn.BatchNorm2d(num_filters) )
                     ds_cnn_layers.append( nn.ReLU() )
                 elif (last_norm== 'Layer'):
-                    ds_cnn_layers.append( nn.LayerNorm([num_filters, t_dim, f_dim], elementwise_affine=False) )
-            
-            t_dim = math.ceil(t_dim/float(conv_st[layer_no]))
-            f_dim = math.ceil(f_dim/float(conv_sf[layer_no]))
+                    ds_cnn_layers.append( nn.LayerNorm([num_filters, t_dim_b, f_dim_b], elementwise_affine=False) )
+                elif (last_norm== 'Batch'):
+                    ds_cnn_layers.append( nn.BatchNorm2d(num_filters) )
 
-                
         self.dscnn = nn.Sequential(*ds_cnn_layers)
         self.embedding_features = num_filters
 
         self.avgpool = nn.AvgPool2d(kernel_size=(t_dim, f_dim), stride=1) 
         self.flatten = Flatten() 
-        
         
     def forward(self, x):
         x = self.dscnn(x)
@@ -80,7 +90,7 @@ class DSCNN(nn.Module):
             
 # DSCNN_SMALL
 model_size_info_DSCNNS = [5, 64, 10, 4, 2, 2, 64, 3, 3, 1, 1, 64, 3, 3, 1, 1, 64, 3, 3, 1, 1, 64, 3, 3, 1, 1]
-padding_0_DSCNNS = (5,1)
+padding_0_DSCNNS = (6,1)
 
 def DSCNNS(x_dim):
     return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNS, padding_0_DSCNNS )
@@ -91,6 +101,10 @@ def DSCNNS_NONORM(x_dim):
 def DSCNNS_LAYERNORM(x_dim):
     return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNS, padding_0_DSCNNS, last_norm='Layer'  )
 
+def DSCNNS_BATCHNORM(x_dim):
+    return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNS, padding_0_DSCNNS  , last_norm='Batch'  )
+
+
 # DSCNN_MEDIUM
 model_size_info_DSCNNM = [5, 172, 10, 4, 2, 1, 172, 3, 3, 2, 2, 172, 3, 3, 1, 1, 172, 3, 3, 1, 1, 172, 3, 3, 1, 1]
 padding_0_DSCNNM = (5,1)
@@ -98,9 +112,17 @@ padding_0_DSCNNM = (5,1)
 def DSCNNM(x_dim):
     return DSCNN(x_dim[1], x_dim[2],model_size_info_DSCNNM, padding_0_DSCNNM  )
 
+def DSCNNM_LAYERNORM(x_dim):
+    return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNM, padding_0_DSCNNM  , last_norm='Layer'  )
+
+def DSCNNM_BATCHNORM(x_dim):
+    return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNM, padding_0_DSCNNM  , last_norm='Batch'  )
+
+
 # DSCNN_LARGE
 model_size_info_DSCNNL = [6, 276, 10, 4, 2, 1, 276, 3, 3, 2, 2, 276, 3, 3, 1, 1, 276, 3, 3, 1, 1, 276, 3, 3, 1, 1, 276, 3, 3, 1, 1]
-padding_0_DSCNNL = (5,1)
+padding_0_DSCNNL = (5,2)
+padding_0_DSCNNL = (5,4,2,1)
 
 def DSCNNL(x_dim):
     return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNL, padding_0_DSCNNL  )
@@ -110,6 +132,9 @@ def DSCNNL_NONORM(x_dim):
 
 def DSCNNL_LAYERNORM(x_dim):
     return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNL, padding_0_DSCNNL  , last_norm='Layer'  )
+
+def DSCNNL_BATCHNORM(x_dim):
+    return DSCNN(x_dim[1], x_dim[2], model_size_info_DSCNNL, padding_0_DSCNNL  , last_norm='Batch'  )
 
 
 # for peeler

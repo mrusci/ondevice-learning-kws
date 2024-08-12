@@ -5,9 +5,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from models.utils import register_model
-from models.encoder.DSCNN import DSCNNL, DSCNNM, DSCNNS, DSCNNL_NONORM, DSCNNL_LAYERNORM, DSCNNS_NONORM, DSCNNS_LAYERNORM
-from models.encoder.resnet import Res15, Res8
-from models.encoder.TCResNet import TCResNet8, TCResNet8Dilated
+from models.encoder.DSCNN import DSCNNL, DSCNNM, DSCNNS, DSCNNL_NONORM, \
+                DSCNNL_LAYERNORM, DSCNNM_LAYERNORM, DSCNNS_NONORM, DSCNNS_LAYERNORM, DSCNNL_BATCHNORM, DSCNNM_BATCHNORM, DSCNNS_BATCHNORM
+from models.encoder.resnet import Res15, Res8, Res15_RELU, Res15_Batch
+from models.encoder.TCResNet import TCResNet8, TCResNet8Dilated, TCResNet8_NORM
 
 from models.preprocessing import MFCC
 
@@ -99,29 +100,44 @@ def get_encoder(encoding, x_dim, hid_dim, out_dim):
     elif encoding == 'DSCNNL_NONORM':
         return DSCNNL_NONORM(x_dim)
     elif encoding == 'DSCNNL_LAYERNORM':
-        return DSCNNL_LAYERNORM(x_dim)    
+        return DSCNNL_LAYERNORM(x_dim)        
+    elif encoding == 'DSCNNL_BATCHNORM':
+        return DSCNNL_BATCHNORM(x_dim)    
     elif encoding == 'DSCNNM':
         return DSCNNM(x_dim)
+    elif encoding == 'DSCNNM_LAYERNORM':
+        return DSCNNM_LAYERNORM(x_dim) 
+    elif encoding == 'DSCNNM_BATCHNORM':
+        return DSCNNM_BATCHNORM(x_dim)      
     elif encoding == 'DSCNNS':
         return DSCNNS(x_dim)
     elif encoding == 'DSCNNS_NONORM':
         return DSCNNS_NONORM(x_dim)
     elif encoding == 'DSCNNS_LAYERNORM':
         return DSCNNS_LAYERNORM(x_dim)    
-    
+    elif encoding == 'DSCNNS_BATCHNORM':
+        return DSCNNS_BATCHNORM(x_dim)    
     # experiments for PEELER
     elif encoding == 'DSCNNS_PEELER':
         return DSCNNS_PEELER(x_dim)
     elif encoding == 'DSCNNL_PEELER':
         return DSCNNL_PEELER(x_dim)    
-    
-
+    elif encoding == 'Resnet15RELU':
+        return Res15_RELU(hid_dim)
     elif encoding == 'Resnet15':
         return Res15(hid_dim)
+    elif encoding == 'Resnet15NODIL':
+        return Res15(hid_dim,  dilation = False)
+    elif encoding == 'Resnet15BATCH':
+        return Res15_Batch(hid_dim)    
+    elif encoding == 'Resnet15BATCHNODIL':
+        return Res15_Batch(hid_dim,  dilation = False)    
     elif encoding == 'Resnet8':
         return Res8(hid_dim)
     elif encoding == 'TCResNet8':
         return TCResNet8(x_dim[0], x_dim[1], x_dim[2])
+    elif encoding == 'TCResNet8NORM':
+        return TCResNet8_NORM(x_dim[0], x_dim[1], x_dim[2])
     elif encoding == 'TCResNet8Dilated':
         return TCResNet8Dilated(x_dim[0], x_dim[1], x_dim[2])
     else:
