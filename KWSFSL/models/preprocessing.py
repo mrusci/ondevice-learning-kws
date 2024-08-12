@@ -22,17 +22,20 @@ class MFCC(AudioPrep):
         frame_len = self.window_size_ms / 1000
         stride = self.window_stride_ms / 1000
         n_fft = next_power_of_2(frame_len*self.sample_rate)
-
+        print(n_fft)
         self.mfcc = torchaudio.transforms.MFCC(self.sample_rate,
                                         n_mfcc=self.n_mfcc ,
-                                        log_mels = True,
+                                        log_mels = False,
                                         melkwargs={
                                             'win_length': int(frame_len*self.sample_rate),
                                             'hop_length' : int(stride*self.sample_rate),
-                                            'n_fft' : int(frame_len*self.sample_rate),
+                                            'n_fft' : n_fft,
                                             "n_mels": self.n_mfcc,
                                             "power": 2,
-                                            "center": False                                         
+                                            "center": False,
+                                            "pad_mode": "constant",
+                                            "mel_scale": 'slaney',
+                                            "norm": 'slaney'
                                         }
                                          )
         super(MFCC, self).__init__()
