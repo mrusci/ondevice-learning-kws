@@ -6,7 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from models.utils import euclidean_dist
-
+from classifiers.augment import OnDeviceAugment, get_default_augm_args
 
 class NearestClassMean(nn.Module):
     """
@@ -84,15 +84,16 @@ class NearestClassMean(nn.Module):
             return torch.softmax(scores, dim=1).cpu()
 
 
-
     @torch.no_grad()
-    def fit_batch_offline(self, x, class_list):
+    def fit_batch_offline(self, x, class_list, online_update=False, augument_proto=0, arg_augm=None):
         """
-        Fit the NCM model to a new sample (x,y).
-        :param item_ix:
-        :param x: a torch tensor of the input data (must be a vector)
-        :param y: a torch tensor of the input label
-        :return: None
+        Fit the NCM model to a batch of data
+        - x is a tensor of size (n_classes, n_support, wav_size)
+        - class_list is a string list of classes ordered as x
+                len(class_list) == x.size(0)
+        - online_update, if true running mean is used
+        - augument_proto, if > 1 every prototype is augmented with augument_proto-1 distorted samples (default: 0)
+        - augment_type, describes the type of augumentation (default: None)
         """
         if self.cuda:
             x = x.cuda()
@@ -102,19 +103,56 @@ class NearestClassMean(nn.Module):
         self.input_shape = x.size(2)
 
         # class list and define class2idb
+        assert self.num_classes == len(class_list), "Mismatch between class list and x size"
         self.class_list = class_list
         for i,item in enumerate(class_list):
             self.word_to_index[item] = i
 
-        # inference
-        x = x.view(self.num_classes * n_support, *x.size()[2:])
-        zq = self.backbone.get_embeddings(x)
-        z_proto = zq.view(self.num_classes, n_support, zq.size(-1)).mean(1)
+        if augument_proto > 1:
+            if arg_augm is None:
+                arg_augm = get_default_augm_args()
+            self.augm = OnDeviceAugment(arg_augm)
+        else:
+            augument_proto = 1
 
-        # update class means
-        self.muK = z_proto
-        self.cK = torch.ones(self.num_classes).mul(n_support)
-        self.num_updates = 0
+        # inference
+        if online_update:
+            if self.cK is None:
+                self.cK = torch.zeros(self.num_classes)
+
+            for c in range(self.num_classes):
+                for i in range(n_support):
+                    for ag in range(augument_proto):
+                        ns_c = self.cK[c] + 1 
+                        x_c_i =  x[c,i,:]
+                        if ag>1:
+                            x_c_i = self.augm.apply(x_c_i)
+                        zq = self.backbone.get_embeddings(x_c_i.unsqueeze(0))
+
+                        if self.muK is None:
+                            emb_sz = zq.size(-1)
+                            self.muK = torch.zeros(self.num_classes, emb_sz)
+                            if self.cuda:
+                                self.muK = self.muK.cuda()
+                                
+                        if ns_c == 1:
+                            self.muK[c] = zq[0]
+                        else:
+                            self.muK[c] = (self.muK[c].mul(ns_c-1) + zq[0]) / ns_c
+
+                        self.cK[c] = ns_c
+
+        else:
+            x = x.view(self.num_classes * n_support, *x.size()[2:])
+            zq = self.backbone.get_embeddings(x)
+            z_proto = zq.view(self.num_classes, n_support, zq.size(-1)).mean(1)
+
+            # update class means
+            self.muK = z_proto
+            self.cK = torch.ones(self.num_classes).mul(n_support)
+            self.num_updates = 0
+            
+        print('Classfier fit!')
 
 
     def class2torchidx(self, labels):
@@ -139,7 +177,9 @@ class NearestClassMean(nn.Module):
             zq = test_x
 
         scores = self.predict(zq, return_probas=return_probas)
-        #print(scores, target_inds)
-        p_y = F.softmax(scores, dim=1).cpu()
 
-        return p_y, target_inds
+        if return_probas:
+            scores = F.softmax(scores, dim=1).cpu()
+                    
+        return scores, target_inds
+        
