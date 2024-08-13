@@ -615,7 +615,7 @@ if __name__ == '__main__':
     # log options
     parser.add_argument('--log.dirname', type=str, default='logs', 
             help="Result dirname")
-    parser.add_argument('--log.results_json', type=str, default='log_continual_db_new_pers_final.json', 
+    parser.add_argument('--log.results_json', type=str, default='', 
             help="Filename for the json log")
     
     # other debug options
@@ -660,20 +660,23 @@ if __name__ == '__main__':
     # store logs
     dir_name = opt['log.dirname']
     json_log_file = opt['log.results_json']
-    log_json_file = os.path.join(dir_name, json_log_file)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    print('Log file: ', log_json_file)
-    if os.path.isfile(log_json_file):
-        with open(log_json_file, 'r') as jsonFile:
-            json_data = json.load(jsonFile)
-        found = False
-        for _, item in json_data.items():
-            if item['settings'] == opt:
-                found = True
-        if found:
-            print('Test with settings {} already logged'.format(opt))
-            exit(0)
+    if json_log_file != '':
+        log_json_file = os.path.join(dir_name, json_log_file)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        print('Log file: ', log_json_file)
+        if os.path.isfile(log_json_file):
+            with open(log_json_file, 'r') as jsonFile:
+                json_data = json.load(jsonFile)
+            found = False
+            for _, item in json_data.items():
+                if item['settings'] == opt:
+                    found = True
+            if found:
+                print('Test with settings {} already logged'.format(opt))
+                exit(0)
+    else:
+        json_log_file = None
 
 
     ####################################################
@@ -1089,20 +1092,18 @@ if __name__ == '__main__':
         result_exp['res_checks_'+str(step)] = check(test_data, user_id_list, output_pre['scores'],output_pre['perf']['thr_opt_50'], output_post['scores'], output_post['perf']['thr_opt_50'])
         results_global[str(ee)] = result_exp
 
-    exit(0)
-    print(results_global)
+    if json_log_file is not None:
+        # average results and store final stats
+        log_json_file = os.path.join(dir_name, json_log_file)
+        print(log_json_file)
+        if os.path.isfile(log_json_file):
+            with open(log_json_file, 'r') as jsonFile:
+                json_data = json.load(jsonFile)
+            next_id = len(json_data)
+        else:
+            next_id = 0
+            json_data = {}
 
-    # average results and store final stats
-    log_json_file = os.path.join(dir_name, json_log_file)
-    print(log_json_file)
-    if os.path.isfile(log_json_file):
-        with open(log_json_file, 'r') as jsonFile:
-            json_data = json.load(jsonFile)
-        next_id = len(json_data)
-    else:
-        next_id = 0
-        json_data = {}
-
-    json_data[str(next_id)] = results_global
-    with open(log_json_file, "w") as jsonFile:
-        json.dump(json_data, jsonFile)
+        json_data[str(next_id)] = results_global
+        with open(log_json_file, "w") as jsonFile:
+            json.dump(json_data, jsonFile)
