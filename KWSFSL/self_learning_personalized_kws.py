@@ -58,6 +58,8 @@ class WakeWordDataset:
             train_meta = json.load(open(os.path.join(self.data_dir_pos, "train.json"), 'r'))
             dev_meta = json.load(open(os.path.join(self.data_dir_pos, "dev.json"), 'r'))
             test_meta = json.load(open(os.path.join(self.data_dir_pos, "test.json"), 'r'))
+            for item in train_meta + dev_meta + test_meta:
+                item['audio_file_path'] = os.path.join(self.data_dir_pos, item['audio_file_path'])
             self.test_meta = test_meta  + dev_meta
             self.train_meta = train_meta
 
