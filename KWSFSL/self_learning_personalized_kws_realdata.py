@@ -38,7 +38,6 @@ from classifiers.NCM import NearestClassMean
 from scipy.io.wavfile import read
 import torch.optim as optim
 
-# python KWSFSL/self_learning_personalized_kws_realdata.py --pos_selflearn_thr 0.4 --neg_selflearn_thr 0.9 --train.triplet_type anchor_triplet --num_pos_batch 10 --num_neg_batch 60 --train.epochs 8 --model_path results/TLAUGL2M05_MSWC500U_RESNET15BNODIL_N80Q20EP400_MFCC3/best_model.pt --ds_config_file res15_ne16 --data_dir /users/psi/mrusci/Work/odl_set/
 
 ##################################################
 ####### test functions
@@ -823,10 +822,9 @@ if __name__ == '__main__':
     diff_list = []
     diff_gap_list = []
     if opt['use_oracle']:
-        print( "speaker \tAcc. Pre-adapt \tAcc. Pre-adapt on GAP \tDiff Pre-adapt vs. GAP \tadapt \toutput_post \tdiff \t")
+        print( "speaker \tAcc. Pre-adapt \tAcc. Pre-adapt on GAP \tDiff Pre-adapt vs. GAP \tadapt \tAcc. Post-adapt \tdiff \tStdDev Pre-adapt \tStdDev Pre-adapt on GAP \tStdDev Post-adapt ")
     else:
-        print( "speaker \tAcc. Pre-adapt \tAcc. Pre-adapt on GAP \tDiff Pre-adapt vs. GAP \tadapt \toutput_post \tdiff \t",\
-                "cnt_pos_ok\t","cnt_pos_nok\t", "cnt_neg_ok\t", "cnt_neg_nok\t")           
+        print( "speaker \tAcc. Pre-adapt \tAcc. Pre-adapt on GAP \tDiff Pre-adapt vs. GAP \tadapt \tAcc. Post-adapt \tdiff \tStdDev Pre-adapt \tStdDev Pre-adapt on GAP \tStdDev Post-adapt \t cnt_pos_ok \tcnt_pos_nok \tcnt_neg_ok \tcnt_neg_nok\t")           
     for ee in speaker_list:
         output_pre = []
         output_pre_gap = []
@@ -843,19 +841,26 @@ if __name__ == '__main__':
             output_pre_gap.append( result_exp['res_pre_gap']['acc_opt_50']) # pre-adapt accuracy computed on GAP (not for comparison) 
             output_post.append( result_exp['res_step_0']['acc_opt_50']) # post-adapt accuracy 
             adapt.append( result_exp['adapt'])
-            cnt_pos_ok.append( result_exp['cnt_pos_ok_step_0'])
-            cnt_pos_nok.append( result_exp['cnt_pos_nok_step_0'])
-            cnt_neg_ok.append( result_exp['cnt_neg_ok_step_0'])
-            cnt_neg_nok.append( result_exp['cnt_neg_nok_step_0'])
+            if not opt['use_oracle']:
+                cnt_pos_ok.append( result_exp['cnt_pos_ok_step_0'])
+                cnt_pos_nok.append( result_exp['cnt_pos_nok_step_0'])
+                cnt_neg_ok.append( result_exp['cnt_neg_ok_step_0'])
+                cnt_neg_nok.append( result_exp['cnt_neg_nok_step_0'])
+
+        std_output_pre = np.std(output_pre)
+        std_output_pre_gap  = np.std(output_pre_gap)
+        std_output_post = np.std(output_post)
 
         output_pre = np.mean(output_pre)
         output_pre_gap  = np.mean(output_pre_gap)
         output_post = np.mean(output_post)
         adapt = np.mean(adapt)
-        cnt_pos_ok = np.mean(cnt_pos_ok)
-        cnt_pos_nok = np.mean(cnt_pos_nok)
-        cnt_neg_ok = np.mean(cnt_neg_ok)
-        cnt_neg_nok = np.mean(cnt_neg_nok)
+        
+        if not opt['use_oracle']:
+            cnt_pos_ok = np.mean(cnt_pos_ok)
+            cnt_pos_nok = np.mean(cnt_pos_nok)
+            cnt_neg_ok = np.mean(cnt_neg_ok)
+            cnt_neg_nok = np.mean(cnt_neg_nok)
 
         diff = output_post - output_pre
         diff_gap = output_pre_gap - output_pre
@@ -868,17 +873,18 @@ if __name__ == '__main__':
         diff_gap_list.append(diff_gap)
         if opt['use_oracle']:
             print( ee, "\t{:.2f}\t".format(output_pre), "{:.2f}\t".format(output_pre_gap), "{:.2f}\t".format(diff_gap),  \
-                 adapt, "\t{:.2f}\t".format(output_post), "{:.2f}\t".format(diff))
+                 adapt, "\t{:.2f}\t".format(output_post), "{:.2f}\t".format(diff), \
+                    "{:.2f}\t{:.2f}\t{:.2f}\t".format(std_output_pre,std_output_pre_gap,std_output_post ) )
         else:
             print( ee, "\t{:.2f}\t".format(output_pre), "{:.2f}\t".format(output_pre_gap), "{:.2f}\t".format(diff_gap),  \
-                 adapt, "\t{:.2f}\t".format(output_post), "{:.2f}\t".format(diff),\
+                 adapt, "\t{:.2f}\t".format(output_post), "{:.2f}\t".format(diff), \
+                    "{:.2f}\t{:.2f}\t{:.2f}\t".format(std_output_pre,std_output_pre_gap,std_output_post ),\
                  "{}\t".format(cnt_pos_ok), "{}\t".format(cnt_pos_nok), "{}\t".format(cnt_neg_ok), "{}\t".format(cnt_neg_nok))           
 
     print('\n*  Final Results (summary)')
-    print('Pre-adapt Accuracy:\t', np.mean(np.array(acc_pre_list)))
-    print('Pre-adapt Accuracy on GAP:\t', np.mean(np.array(acc_pre_gap_list)))
-    print('Post-adapt Accuracy:\t', np.mean(np.array(acc_list)))
-    #print('diff_gap_list:\t', np.mean(np.array(diff_gap_list)))
-    print('Increment:\t', np.mean(np.array(diff_list)))
+    print('Pre-adapt Accuracy\t{}\t with a std dev of\t{}'.format(np.mean(np.array(acc_pre_list)), np.std(np.array(acc_pre_list)) )) 
+    print('Pre-adapt Accuracy on GAP\t{}\t with a std dev of\t{}'.format(np.mean(np.array(acc_pre_gap_list)),np.std(np.array(acc_pre_gap_list)) ))
+    print('Post-adapt Accuracy\t{}\t with a std dev of\t{}'.format( np.mean(np.array(acc_list)), np.std(np.array(acc_list))))
+    print('Increment\t{}\t with a std dev of\t{}'.format(np.mean(np.array(diff_list)), np.std(np.array(diff_list))))
 
 
