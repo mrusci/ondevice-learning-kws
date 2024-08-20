@@ -6,8 +6,6 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Self-learning Options')
 # model and dataset args
-parser.add_argument('--model_path', type=str, 
-                    default='', help="Path to the model pt under test")
 parser.add_argument('--dataset', type=str, default='', 
                     help="Path to the sensor dataset")
 parser.add_argument('--log_name', type=str, default='log_continual_db_new_pers.json', 
@@ -18,14 +16,12 @@ opt = vars(parser.parse_args())
 
 
 # check arguments
-if opt['model_path'] == '':
-    raise ValueError("Missing <model_path> argument!")
 if opt['dataset'] not in ['heysnips','heysnapdragon']:
     raise ValueError("<dataset> is wrong!")
 
 
 
-log_json_file = os.path.join(opt['model_path'],opt['log_name'])
+log_json_file = opt['log_name']
 
 with open(log_json_file, 'r') as jsonFile:
     json_data = json.load(jsonFile)
@@ -45,6 +41,7 @@ for item in range(20):
 for item in range(20):
     aa  += 'acc50_post_'+str(item)+ '\t'
 print(
+    'model_path\t'
     'dataset\t',
     'use_oracle\t',
     'triplet_type\t',
@@ -76,6 +73,7 @@ print(
 # average and print experiment data 
 for key, exp in json_data.items(): 
     settings = exp['settings']
+    model_path = settings['model_path']
     pos_selflearn_thr = settings['pos_selflearn_thr']
     neg_selflearn_thr = settings['neg_selflearn_thr']
     step_size_ratio = settings['step_size_ratio']
@@ -83,10 +81,8 @@ for key, exp in json_data.items():
     change_labels = settings['change_labels']
     num_continual_set = settings['num_continual_set']
     adapt_set_ratio = settings['adapt_set_ratio']
-    init_set_ratio = settings['init_set_ratio']
     num_pos_batch = settings['num_pos_batch']
     num_neg_batch = settings['num_neg_batch']
-    num_experiments = settings['num_experiments']
     triplet_type = settings['train.triplet_type']
 
     # filters
@@ -231,6 +227,7 @@ for key, exp in json_data.items():
         aa  += str(item)+ '\t'
 
     print(
+        model_path, '\t',
         settings['dataset'], '\t',
         use_oracle, '\t',
         triplet_type, '\t',
