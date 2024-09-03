@@ -1,95 +1,89 @@
-# Few-Shot Open-Set Learning for On-Device Customization of KWS
+# On-Device Learning Keyword Spotting (KWS)
 
+This repository includes the experiment code to design and test lightweight keyword spotting models that can learn new keywords over time after deployment on resource-constrained embedded systems, e.g., low-power microcontrollers.
 
-This repository contains the code to reproduce the experiments of our [paper](https://arxiv.org/pdf/2306.02161.pdf). 
-We provide the scripts to:
-* train a fearure extractor using the Multilingual Spoken Words Corpus ([MSWC](https://mlcommons.org/en/multilingual-spoken-words/)) dataset with different training recipes and backbones (refer to the [training details](#feature-extractor-training) for more info)
-* run tests on the Google Speech Commands ([GSC](https://ai.googleblog.com/2017/08/launching-speech-commands-dataset.html)) dataset using few-shot examples to initilize a classifier that is meant to work in open-set
+The on-device learning approaches are described in the following papers:
 
-Please cite our paper in case you make reuse any part of the code:
+## Few-Shot Open-Set Learning KWS
+
 ```
 @inproceedings{rusci_interspeech23,
-  author={Manuele Rusci and Tinne Tuytelaars},
-  title={{Few-Shot Open-Set Learning for On-Device Customization of KeyWord Spotting Systems}},
+  author={Rusci, Manuele and Tuytelaars, Tinne},
+  title={Few-Shot Open-Set Learning for On-Device Customization of KeyWord Spotting Systems},
   year=2023,
   booktitle={Proc. Interspeech},
 }
 ```
-## Repository Overview
-All the used scripts are included in the `KWSFSL/` folder:
-* `metric_learning.py`: main training script
-* `test_fewshots_classifiers_openset.py`: main test script, including the metric calculation
-* `data/`: scripts to load MSWC and GSC data
-* `classfiers/`: classfiers used for the few-shot inizialization
-* `models/`: collection of loss functions and backbones exprimented
-
-
-## Data Preparation
-After defining a`<dataset_path>`, follow the following instrcution to setup the MSWC and GSC datasets.
-Also note that additive noise from the DEMAND dataset is used at training time. 
-
-### Multilingual Spoken Words Corpus (MSWC) 
-- Simply [download](https://mlcommons.org/en/multilingual-spoken-words/) and unpack the engish partition inside the `<dataset_path>`. Audio files will be in `<dataset_path>/MSWC/en/clips/`
-- Convert the audio files to .opus to .wav and store to the outputs to `<dataset_path>/MSWC/en/clips_wav/`. This will fasten the file loads at runtime (no uncompress is needed) at the cost of a higher memory storage. If this step is not done, modify the folder name at line 390 of the `MSWCData.py` file
-- Put the split csv files (`en_{train,test,dev}.csv`) to the `<dataset_path>/MSWC/en/` folder
-- Add the noise folder to sample the noise recordings: `<dataset_path>/MSWC/noise/`. We used samples from the [DEMAND](https://zenodo.org/record/1227121) dataset, only copying the wav file with ID=01 of every noise type to the destination folder (the name of the file is the destination folder can be any).
-
-### Google Speech Commands (GSC)
-The Google Speech Command dataset v2 is unpacked to `<dataset_path>/GSC/`. 
-Any link for download can be used (e.g. [torchaudio](https://pytorch.org/tutorials/intermediate/speech_command_classification_with_torchaudio_tutorial.html)).
-
-
-## Open-Set Test Framework with Few-Shot Example enrollements
-After [training](#feature-extractor-training), the feature extractor is evaluated on a few-shot open-set problem. _E.g._: 
 ```
-python KWSFSL/test_fewshots_classifiers_openset.py --data.cuda --speech.dataset googlespeechcommand --speech.task GSC12,GSC22 --speech.include_unknown --fsl.test.n_way 11 --fsl.test.n_episodes 10 --speech.default_datadir <dataset_path>/GSC/ --fsl.test.batch_size 264  --fsl.classifier ncm --fsl.test.n_support 10 --model.model_path results/TL_MSWC500U_DSCNNLLN/best_model.pt
+@article{rusci2023device,
+  title={On-device customization of tiny deep learning models for keyword spotting with few examples},
+  author={Rusci, Manuele and Tuytelaars, Tinne},
+  journal={IEEE Micro},
+  year={2023},
+  publisher={IEEE}
+}
 ```
-As an example, we provide a DSCNNL_NORM model trained using the triplet loss on the MSWC dataset. The checkpoint file can be found in 'results/TL_MSWC500U_DSCNNLLN'.
+These two works focus the problem of on-device customization of KWS model to learn new keywords after deployment, i.e., keywords not known at training time.
+The first [paper](https://www.isca-archive.org/interspeech_2023/rusci23_interspeech.pdf) describes a framework to evaluate KWS models that can learn new keywords by recording few utterance examples.
+The second [paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10241972) illustrates a microcontroller-based system solution for KWS few-shot learning. 
 
-### Main Test Options
-- `fsl.classifier`. Type of the classifier. Options: ['ncm', 'ncm_openmax', 'dproto']. For _dproto_, the feature extractor has to be trained accordingly (dproto loss).
-- `fsl.test.n_support`. Number of support samples used to initialize the classifier. Options: []
-- `fsl.test.n_way`. Number of classes: N + 1 (_unknown_).
-- `fsl.test.n_episodes`. Number of test episodes. At every episode, a different set of support samples is loaded.
-- `model.model_path`. Path to the trained model (_pt_ file).
+The repository includes the training and test scripts for a KWS audio encoder that can be initialized on-device to recongnize new keywords. 
+The official branch of the INTERSPEECH paper is tagged `interspeech23`.
+More details on how to setup the code can be found [here](FewShotKWS.md)
 
-
-## Feature Extractor Training
-To train the feature encoder on the MSWC dataset you can run:
+## Self-Learning for Personalized KWS
 ```
-python KWSFSL/metric_learning.py --data.cuda --speech.dataset MSWC  --speech.task MSWC500U --speech.default_datadir <dataset_path>/MSWC_en/en/ --speech.include_noise --model.model_name repr_conv --model.encoding DSCNNL_LAYERNORM --model.z_norm   --train.epochs 40  --train.n_way 80 --train.n_support 0 --train.n_query 20 --train.n_episodes 400 --train.loss triplet  --train.margin 0.5  --log.exp_dir <TEST_NAME>/
+@article{rusci2024self,
+  title={Self-Learning for Personalized Keyword Spotting on Ultra-Low-Power Audio Sensors},
+  author={Rusci, Manuele and Paci, Francesco and Fariselli, Marco and Flamand, Eric and Tuytelaars, Tinne},
+  journal={arXiv preprint arXiv:2408.12481},
+  year={2024}
+}
 ```
-Make sure to set: `dataset_path` and `TEST_NAME`. 
-You can use the command above to generate the trained model provided as an example in 'results/TL_MSWC500U_DSCNNLLN'. 
+This [work](https://arxiv.org/pdf/2408.12481) describes a method to incrementally fine-tune a KWS model after few-shot initialization. The principle is llustrated in the figure below. After a calibration with respect to the few-shot data, a labeling task assigns pseudo-labels to new unsupervised data based on the similarity with respect to the prototype. The collected pseudo-labeled data are used for the fine-tuning of the model. 
 
-### Main Training Options
-- `speech.dataset`. Name of the dataset: 'MSWC'
-- `speech.task`. 'MSWC500U' means 500 classes with an Unbalanced number of samples.
-- `speech.include_noise`. If enabled, additive noise is added to the utterance samples.
-- `model.model_name`. 'repr_conv' indicates the class of the model.
-- `model.encoding`. Used encoder. DSCNNL_LAYERNORM is a DSCNN large model with a final layer norm layer. Check models/repr_model.py for more options.
-- `model.z_norm`. If enabled, L2 normalization is applied on the embeddings. 
-- `train.n_way`. Number of classes for training episodes.
-- `train.n_support`. Number of support samples per training episode. Must be different from zero only if using prototypical loss.
-- `train.n_query`. Number of samples per training episodes.
-- `train.n_episodes`. Number of episodes for epoch.
-- `train.loss`. Available: 'triplet', 'prototypical', 'angproto', 'dproto'.
-- `train.margin`. Loss margin parameter. 
+![image](images/selflearningscheme.png)
+
+### Reproducing paper results with Public Data 
 
 
-## Other scripts
-- `train_class_loss.py`. To train model for end-to-end classification. 
-- `test_supervised_openset.py`. Test few-shot open set the model trained for end-to-end classification. 
+The `self_learning_personalized_kws.py` in the `KWSFSL/` folder contains the code of the proposed solution. 
+As an example, you can run: 
+```
+python KWSFSL/self_learning_personalized_kws.py --model_path <pretrained_model_path> --dataset <dataset_name> --pos_selflearn_thr 0.3 --neg_selflearn_thr 0.9 --adapt_set_ratio 0.7 --step_size_ratio 0.125 --train.epochs 20 --train.triplet_type anchor_triplet --data_dir_pos <dataset_pos_path> --data_dir_neg <dataset_neg_path> --log.dirname <dir_name> --log.results_json <json_file_name>
+```
 
+* `<dataset_name>`: two options available: `heysnapdragon` or `heysnips`. The datasets can be found at the following links: [HeySnips](https://github.com/sonos/keyword-spotting-research-datasets/tree/master) and [HeySnapdragon](https://developer.qualcomm.com/project/keyword-speech-dataset).
+* `pos_selflearn_thr` and `neg_selflearn_thr` are respectively the positive and negative thresholds. 
+* `<dataset_pos_path>`: path to the HeySnips or HeySnapdragon data. 
+* `<dataset_neg_path>`: path to the negative data. In our experiment, we always use the HeySnips negative data. If not defined, the  <dataset_neg_path> = <dataset_pos_path>.
+* `<pretrained_model_path>`: path to the .pt model to be incrementally fine-tuned. The repository include several pretrained models used for the experiments in the `pretrained_models/` folder: DSCNNS, DSCNNM, DSCNNL, RESNET15. As an example, use pretrained_models/RESNET15.pt for the path. 
+* `<dir_name>` and `<json_file_name>` specify where to store the output data, e.g.: --log.dirname logs/public --log.results_json heysnips.json
+
+To parse the output file you can use the script (adjust the dataset name and match the log output name with respect to what you used):
+```
+python scripts/SelfLearningLogAnalysis.py --dataset heysnips --log_name logs/public/heysnips.json
+```
+For the setting used in the paper (Tab. III), you can refer to the script `scripts/run_self_learning_public.sh`.
+
+The code has been tested with the following package version:
+- torch                1.12.1 
+- torchaudio           0.12.1 
+- librosa              0.9.2 
+- numpy                1.21.6 
+- scikit-learn         1.0.2 
+- scipy                1.7.3 
+
+
+### Reproducing paper results with Collected Data
+TODO. It will be updated after public data release. 
+
+
+
+## License
+The code is distributed under MIT license. 
+Part of the code is however inspired or taken by other repositories as carefully detailed in notice.txt.  
 
 
 ## Acknownoledge
-
-We acknowledge the following code repositories:
-- https://github.com/ArchitParnami/Few-Shot-KWS
-- https://github.com/roman-vygon/triplet_loss_kws
-- https://github.com/clovaai/voxceleb_trainer
-- https://github.com/BoLiu-SVCL/meta-open/
-- https://github.com/tyler-hayes/Embedded-CL
-- https://github.com/MrtnMndt/OpenVAE_ContinualLearning
-- https://github.com/Codelegant92/STC-ProtoNet
+This work is supported by the Horizon Europe program under the Marie-Curie Post-Doctoral Fellowship Program: project SEA2Learn (grant agreement 101067475).

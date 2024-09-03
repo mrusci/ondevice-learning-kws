@@ -1,0 +1,40 @@
+The following files:
+- KWSFSL/metric_learning.py
+- KWSFSL/data/data_utils.py
+- KWSFSL/data/GSCSpeechData.py
+- KWSFSL/data/MSWCData.py
+- KWSFSL/models/e2e.py
+- KWSFSL/models/repr_model.py
+- KWSFSL/models/utils.py
+- KWSFSL/models/encoder/TCResNet.py
+- KWSFSL/models/encoder/baseUtil.py
+- KWSFSL/models/losses/protonet.py
+are adapted from https://github.com/ArchitParnami, which was originally inspired from https://github.com/jakesnell/prototypical-networks, distributed under MIT license. 
+
+The following files:
+- KWSFSL/models/encoder/resnet.py 
+- KWSFSL/models/losses/triplet.py
+are adapteb from https://github.com/roman-vygon/triplet_loss_kws, which is distributed under MIT license. 
+
+The following files:
+- KWSFSL/models/losses/amsoftmax.py
+- KWSFSL/models/losses/angproto.py
+are adapteb from https://github.com/clovaai/voxceleb_trainer, which is distributed under MIT license. 
+
+The following files:
+- KWSFSL/models/losses/peeler.py
+are adapteb from https://github.com/BoLiu-SVCL/meta-open/, which is distributed under MIT license. 
+
+The following files:
+- KWSFSL/classifiers/dproto.py
+- KWSFSL/classifiers/NCM.py
+are adapteb from https://github.com/tyler-hayes/Embedded-CL/, which is distributed under MIT license. 
+
+The following files:
+- KWSFSL/classifiers/NCM_openmax.py
+are adapteb from https://github.com/MrtnMndt/OpenVAE_ContinualLearning/, which is distributed under MIT license. 
+
+We also aclnowledge the repository https://github.com/Codelegant92/STC-ProtoNet/, which is also distributed under MIT license, for some parts of code in:
+- KWSFSL/data/data_utils.py
+- KWSFSL/data/GSCSpeechData.py
+- KWSFSL/data/MSWCData.py
