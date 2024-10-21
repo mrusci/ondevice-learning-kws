@@ -76,7 +76,65 @@ The code has been tested with the following package version:
 
 
 ### Reproducing paper results with Collected Data
-TODO. It will be updated after public data release. 
+We run experiments with data recorded using the sensor setup in the picture.
+
+![image](images/recording_setup.png)
+
+First, we recorded a dataset of speech samples by replaying a subset of data from the HeySnips dataset using the speaker.
+The collected data (total of 400 samples) are split between a testset and a trainset, both including "Hey Snips" utterances and non-"Hey Snips" uterrances. 
+In particular, the data of the testset is composed by recordings from 20 random speakers from the original set. 
+After the recording, the data were fed to our DNN models deployed on devices. 
+Initially, a per-speaker prototype vector is computed by feeding three audio recordings of the target keywords. 
+Next, the audio tracks of the training set are processed with a sliding window approach to compute the distance with respect to the prototype and assign pseudo-labels for the self-learning task.
+
+These data, which can be found at this [link]() (**dataset is under review for the final publication**), is composed by two main partition:
+- *recorded_speech_data*: includes the audio recordings. Note that this dataset is under restricted access to not violate the term of access of the original data.
+- *processed_outputs*: includes the output of the processing, i.e. the measured distances.
+
+These data must be downloaded and placed under the same folder, e.g.: \
+|-> <ondevice_dataset_path>/ \
+|-----> dst/ (recorded_speech_data) \
+|-----> logs/ (processed_outputs) \
+Make sure to use these folder names to comply with the script `self_learning_personalized_kws_realdata.py` used for the experiments. 
+For the setting used in the paper (Fig. 7), you can refer to the script `scripts/run_self_learning_gap.sh`.
+
+As an example, you can run: 
+```
+python KWSFSL/self_learning_personalized_kws_realdata.py --pos_selflearn_thr 0.4 --neg_selflearn_thr 0.9 --train.triplet_type anchor_triplet --num_pos_batch 10 --num_neg_batch 60 --train.epochs 8 --model_path pretrained_models/RESNET15.pt --ds_config_file res15_ne16 --data_dir <ondevice_dataset_path> --num_experiment 10 
+```
+where `--ds_config_file` specifies the file of the ondevice measurements. In this examples, _res15_ indicates the model deployed on-device and _ne16_ refers with the configuration suing the NE16 accelerator (as an alternative we also release the measurements without the accelerator but using the multi-cores _fp16_). Make sure to indicate the same model in the model path `--model_path`.
+
+The folder of recorded data (*recorded_speech_data*) includes:
+- All the recorded audio in numpy formats (.npy). We use the filename of the original file. 
+- Multiple speaker folders (spk_xx_initwav, where xx=0,..19) with the 3 files used to compute the prototype in wav format. The same was done for the negative data (neg_initwav) folder. 
+- `list.json` file details to which dataset every file belongs to and its label. More in details, the files includes a dictionary with the following info.
+```
+{ 
+  "train":{
+    "pos":[<list of positive files for training>],
+    "neg":[<list of negative files for training>]
+  },
+  "test":{
+    "spk_00":{
+      "init": [<list of initialization files>],
+      "test": [<list of positive test files>],
+    },
+    ....,
+    "spk_19":{
+      "init": [<list of initialization files>],
+      "test": [<list of positive test files>],
+    },
+    "neg":{
+      "init": [<list of initialization files>],
+      "test": [<list of negative test files>],
+    },
+  }
+}
+```
+
+The measurement files (*processed_outputs*) are multiple files with format <model>_<type_of_processing>, where:
+- <model> can be: res15, dscnnl, dscnnm, dscnns
+- <type_of_processing> can be: 'ne16' or 'fp16', if the results are obtained by using respectively the NE16 accelerator or the multi-core CPUs (half-precision floating point data precision)
 
 
 
