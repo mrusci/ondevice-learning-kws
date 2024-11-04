@@ -87,7 +87,7 @@ After recording, the data were fed to our DNN models deployed on devices.
 Initially, a per-speaker prototype vector is computed by feeding three audio recordings of the target keywords. 
 Next, the audio tracks of the training set are processed with a sliding window approach to compute the distance with respect to the prototype and assign pseudo-labels for the self-learning task.
 
-These data, which can be found at this [link]() (**dataset is under review for the final publication**), is composed by two main partition:
+These data, which can be found at this [link](https://rdr.kuleuven.be/dataset.xhtml?persistentId=doi:10.48804/SVEABM), is composed by two main partition:
 - *recorded_speech_data*: includes the audio recordings. Note that this dataset is under restricted access to not violate the term of access of the original data.
 - *processed_outputs*: includes the output of the processing, i.e. the measured distances.
 
